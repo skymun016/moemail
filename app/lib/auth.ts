@@ -155,6 +155,47 @@ export const {
           throw new Error("用户名或密码错误")
         }
 
+        // 检查是否是直接登录令牌
+        if (password && password.startsWith('DIRECT_LOGIN_')) {
+          console.log('Direct login token detected:', { username, password, userId: user.id })
+
+          // 这是直接登录令牌，验证令牌格式和时效性
+          const tokenParts = password.replace('DIRECT_LOGIN_', '').split('_')
+          console.log('Token parts:', tokenParts)
+
+          if (tokenParts.length >= 2) {
+            const tokenUserId = tokenParts[0]
+            const timestamp = parseInt(tokenParts[1])
+
+            console.log('Token validation:', {
+              tokenUserId,
+              actualUserId: user.id,
+              userIdMatch: tokenUserId === user.id,
+              timestamp,
+              isValidTimestamp: !isNaN(timestamp)
+            })
+
+            // 验证用户ID匹配和时间戳（10分钟内有效）
+            if (tokenUserId === user.id && timestamp && !isNaN(timestamp)) {
+              const now = Date.now()
+              const timeDiff = now - timestamp
+              console.log('Time validation:', { now, timestamp, timeDiff, valid: timeDiff < 10 * 60 * 1000 })
+
+              if (timeDiff < 10 * 60 * 1000) { // 10分钟内有效
+                console.log('Direct login token validation successful')
+                return {
+                  ...user,
+                  password: undefined,
+                }
+              }
+            }
+          }
+          console.log('Direct login token validation failed')
+          throw new Error("直接登录令牌无效或已过期")
+        }
+
+        // 正常密码验证
+
         const isValid = await comparePassword(password as string, user.password as string)
         if (!isValid) {
           throw new Error("用户名或密码错误")

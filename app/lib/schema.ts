@@ -142,6 +142,34 @@ export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
   }),
 }));
 
+// 临时访问令牌表
+export const tempAccessTokens = sqliteTable('temp_access_tokens', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().references(() => users.id),
+  token: text('token').notNull().unique(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  usedAt: integer('used_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+  createdBy: text('created_by').notNull().references(() => users.id), // 记录是哪个管理员生成的
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+}, (table) => ({
+  tokenIndex: uniqueIndex('token_unique').on(table.token),
+  userIdIndex: index('temp_tokens_user_id_idx').on(table.userId),
+  expiresAtIndex: index('temp_tokens_expires_at_idx').on(table.expiresAt),
+}));
+
+export const tempAccessTokensRelations = relations(tempAccessTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [tempAccessTokens.userId],
+    references: [users.id],
+  }),
+  creator: one(users, {
+    fields: [tempAccessTokens.createdBy],
+    references: [users.id],
+  }),
+}));
+
 export const userRolesRelations = relations(userRoles, ({ one }) => ({
   user: one(users, {
     fields: [userRoles.userId],
@@ -156,6 +184,8 @@ export const userRolesRelations = relations(userRoles, ({ one }) => ({
 export const usersRelations = relations(users, ({ many }) => ({
   userRoles: many(userRoles),
   apiKeys: many(apiKeys),
+  tempAccessTokens: many(tempAccessTokens),
+  createdTokens: many(tempAccessTokens, { relationName: "createdTokens" }),
 }));
 
 export const rolesRelations = relations(roles, ({ many }) => ({

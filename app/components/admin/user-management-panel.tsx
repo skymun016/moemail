@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
-import { Users, Plus, Edit, Trash2, Crown, Gem, Sword, User2, Mail, Clock, Ban, Pause, AlertTriangle } from "lucide-react"
+import { Users, Plus, Edit, Trash2, Crown, Gem, Sword, User2, Mail, Clock, Ban, Pause, AlertTriangle, Link } from "lucide-react"
 import { ROLES } from "@/lib/permissions"
+import { LoginLinkDialog } from "./login-link-dialog"
 import { USER_STATUS, USER_EXPIRY_TEMPLATES, UserStatus } from "@/types/user"
 import { cn } from "@/lib/utils"
 import { z } from "zod"
@@ -366,6 +367,8 @@ export function UserManagementPanel() {
     }
   }
 
+
+
   const openEditDialog = (user: User) => {
     setSelectedUser(user)
     setEditForm({
@@ -609,6 +612,18 @@ export function UserManagementPanel() {
                   </div>
 
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    {/* 生成登录链接按钮 - 所有用户都可以生成 */}
+                    <LoginLinkDialog user={user}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600 dark:hover:text-green-400"
+                        title={`生成 ${user.username} 的直接登录链接`}
+                      >
+                        <Link className="w-4 h-4" />
+                      </Button>
+                    </LoginLinkDialog>
+
                     {user.role !== ROLES.EMPEROR && (
                       <>
                         <Button
