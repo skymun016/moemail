@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { nanoid } from "nanoid"
 import { createDb } from "@/lib/db"
-import { emails } from "@/lib/schema"
+import { emails, users } from "@/lib/schema"
 import { eq, and, gt, sql } from "drizzle-orm"
 import { EXPIRY_OPTIONS } from "@/types/email"
 import { EMAIL_CONFIG } from "@/config"
@@ -20,24 +20,24 @@ export async function POST(request: Request) {
   const userRole = await getUserRole(userId!)
 
   try {
+    // 检查用户是否有自动生成的邮箱
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId!)
+    })
+
+    if (user?.isAdminCreated) {
+      return NextResponse.json(
+        { error: "您的邮箱已由管理员自动生成，无法手动创建新邮箱" },
+        { status: 403 }
+      )
+    }
+
+    // 只有皇帝可以手动创建邮箱
     if (userRole !== ROLES.EMPEROR) {
-      const maxEmails = await env.SITE_CONFIG.get("MAX_EMAILS") || EMAIL_CONFIG.MAX_ACTIVE_EMAILS.toString()
-      const activeEmailsCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(emails)
-        .where(
-          and(
-            eq(emails.userId, userId!),
-            gt(emails.expiresAt, new Date())
-          )
-        )
-      
-      if (Number(activeEmailsCount[0].count) >= Number(maxEmails)) {
-        return NextResponse.json(
-          { error: `已达到最大邮箱数量限制 (${maxEmails})` },
-          { status: 403 }
-        )
-      }
+      return NextResponse.json(
+        { error: "您没有权限创建邮箱" },
+        { status: 403 }
+      )
     }
 
     const { name, expiryTime, domain } = await request.json<{ 

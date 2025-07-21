@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试用户API</title>
+</head>
+<body>
+    <h1>测试用户API响应</h1>
+    <button onclick="testUserApi()">测试用户列表API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testUserApi() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '正在测试...';
+            
+            try {
+                const response = await fetch('/api/admin/users?page=1&limit=20');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('API响应数据:', data);
+                    
+                    // 查找 amesky01 用户
+                    const amesky01 = data.users.find(user => user.username === 'amesky01');
+                    
+                    if (amesky01) {
+                        console.log('找到 amesky01 用户:', amesky01);
+                        
+                        const info = `
+                            <h2>amesky01 用户信息:</h2>
+                            <p><strong>ID:</strong> ${amesky01.id}</p>
+                            <p><strong>用户名:</strong> ${amesky01.username}</p>
+                            <p><strong>expiresAt:</strong> ${amesky01.expiresAt} (类型: ${typeof amesky01.expiresAt})</p>
+                            <p><strong>status:</strong> ${amesky01.status}</p>
+                            <p><strong>maxEmails:</strong> ${amesky01.maxEmails}</p>
+                            <p><strong>role:</strong> ${amesky01.role}</p>
+                            
+                            <h3>时间计算测试:</h3>
+                        `;
+                        
+                        let timeInfo = '';
+                        if (amesky01.expiresAt) {
+                            const timestamp = typeof amesky01.expiresAt === 'string' ? parseInt(amesky01.expiresAt) : amesky01.expiresAt;
+                            const expiresAt = new Date(timestamp);
+                            const now = new Date();
+                            const timeDiff = expiresAt.getTime() - now.getTime();
+                            const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+                            
+                            timeInfo = `
+                                <p><strong>时间戳:</strong> ${timestamp}</p>
+                                <p><strong>过期日期:</strong> ${expiresAt.toLocaleString()}</p>
+                                <p><strong>剩余天数:</strong> ${daysRemaining}天</p>
+                                <p><strong>应显示:</strong> ${daysRemaining > 0 ? `${daysRemaining}天后过期` : '已过期'}</p>
+                            `;
+                        } else {
+                            timeInfo = '<p><strong>⚠️ expiresAt 为空，会显示"永久有效"</strong></p>';
+                        }
+                        
+                        resultDiv.innerHTML = info + timeInfo;
+                    } else {
+                        resultDiv.innerHTML = '<p>❌ 未找到 amesky01 用户</p>';
+                    }
+                } else {
+                    resultDiv.innerHTML = `<p>❌ API请求失败: ${response.status} ${response.statusText}</p>`;
+                }
+            } catch (error) {
+                console.error('测试失败:', error);
+                resultDiv.innerHTML = `<p>❌ 测试失败: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

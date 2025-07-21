@@ -15,14 +15,22 @@ export default async function MoePage() {
     redirect("/")
   }
 
-  const hasPermission = await checkPermission(PERMISSIONS.MANAGE_EMAIL)
+  const hasPermission = await checkPermission(PERMISSIONS.VIEW_EMAIL)
 
   return (
-    <div className="bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 h-screen">
-      <div className="container mx-auto h-full px-4 lg:px-8 max-w-[1600px]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800">
+      <div className="container mx-auto h-screen px-4 lg:px-6 max-w-[1800px]">
         <Header />
-        <main className="h-full">
-          <ThreeColumnLayout />
+        <main className="h-full relative">
+          {/* 背景装饰 */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-400/10 rounded-full blur-3xl"></div>
+          </div>
+
+          <div className="relative z-10 h-full">
+            <ThreeColumnLayout />
+          </div>
           {!hasPermission && <NoPermissionDialog />}
         </main>
       </div>

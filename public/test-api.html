@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试用户API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e9; color: #2e7d32; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>测试用户API响应</h1>
+    <button onclick="testUserApi()">测试用户列表API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testUserApi() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result">正在测试...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/users?page=1&limit=20');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('API响应数据:', data);
+                    
+                    // 查找 amesky01 用户
+                    const amesky01 = data.users ? data.users.find(user => user.username === 'amesky01') : null;
+                    
+                    let html = '<div class="result success">';
+                    html += '<h2>API响应成功</h2>';
+                    html += '<h3>完整响应数据:</h3>';
+                    html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    
+                    if (amesky01) {
+                        html += '<h3>amesky01 用户详细信息:</h3>';
+                        html += '<pre>' + JSON.stringify(amesky01, null, 2) + '</pre>';
+                        
+                        html += '<h3>关键字段分析:</h3>';
+                        html += '<p><strong>expiresAt:</strong> ' + amesky01.expiresAt + ' (类型: ' + typeof amesky01.expiresAt + ')</p>';
+                        html += '<p><strong>status:</strong> ' + amesky01.status + ' (类型: ' + typeof amesky01.status + ')</p>';
+                        html += '<p><strong>lastLoginAt:</strong> ' + amesky01.lastLoginAt + ' (类型: ' + typeof amesky01.lastLoginAt + ')</p>';
+                        html += '<p><strong>createdAt:</strong> ' + amesky01.createdAt + ' (类型: ' + typeof amesky01.createdAt + ')</p>';
+                        
+                        // 时间计算测试
+                        if (amesky01.expiresAt) {
+                            try {
+                                const timestamp = typeof amesky01.expiresAt === 'string' ? parseInt(amesky01.expiresAt) : amesky01.expiresAt;
+                                const expiresAt = new Date(timestamp);
+                                const now = new Date();
+                                const timeDiff = expiresAt.getTime() - now.getTime();
+                                const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+                                
+                                html += '<h3>时间计算结果:</h3>';
+                                html += '<p><strong>时间戳:</strong> ' + timestamp + '</p>';
+                                html += '<p><strong>过期日期:</strong> ' + expiresAt.toLocaleString() + '</p>';
+                                html += '<p><strong>当前时间:</strong> ' + now.toLocaleString() + '</p>';
+                                html += '<p><strong>时间差:</strong> ' + timeDiff + 'ms</p>';
+                                html += '<p><strong>剩余天数:</strong> ' + daysRemaining + '天</p>';
+                                html += '<p><strong>应该显示:</strong> ' + (daysRemaining > 0 ? daysRemaining + '天后过期' : '已过期') + '</p>';
+                            } catch (error) {
+                                html += '<p class="error">时间计算失败: ' + error.message + '</p>';
+                            }
+                        } else {
+                            html += '<p class="error"><strong>⚠️ expiresAt 为空，这就是显示"永久有效"的原因！</strong></p>';
+                        }
+                    } else {
+                        html += '<p class="error">❌ 未找到 amesky01 用户</p>';
+                    }
+                    
+                    html += '</div>';
+                    resultDiv.innerHTML = html;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = '<div class="result error"><h2>API请求失败</h2><p>状态码: ' + response.status + ' ' + response.statusText + '</p><p>错误信息: ' + errorText + '</p></div>';
+                }
+            } catch (error) {
+                console.error('测试失败:', error);
+                resultDiv.innerHTML = '<div class="result error"><h2>测试失败</h2><p>' + error.message + '</p></div>';
+            }
+        }
+    </script>
+</body>
+</html>

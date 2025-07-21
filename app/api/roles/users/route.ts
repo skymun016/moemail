@@ -1,8 +1,39 @@
 import { createDb } from "@/lib/db"
 import { users } from "@/lib/schema"
 import { eq } from "drizzle-orm"
+import { auth } from "@/lib/auth"
 
 export const runtime = "edge"
+
+// 获取当前用户信息
+export async function GET() {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return Response.json({ error: "未授权" }, { status: 401 })
+    }
+
+    const db = createDb()
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, session.user.id),
+      columns: {
+        expiresAt: true,
+      }
+    })
+
+    if (!user) {
+      return Response.json({ error: "用户不存在" }, { status: 404 })
+    }
+
+    return Response.json({
+      expiresAt: user.expiresAt,
+    })
+
+  } catch (error) {
+    console.error('Failed to fetch user info:', error)
+    return Response.json({ error: "获取用户信息失败" }, { status: 500 })
+  }
+}
 
 export async function POST(request: Request) {
   try {

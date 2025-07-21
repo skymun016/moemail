@@ -4,13 +4,16 @@ import { PERMISSIONS } from "@/lib/permissions"
 import { checkPermission } from "@/lib/auth"
 import { Permission } from "@/lib/permissions"
 import { handleApiKeyAuth } from "@/lib/apiKey"
+import { checkUserStatus } from "@/lib/user-status"
 
 const API_PERMISSIONS: Record<string, Permission> = {
-  '/api/emails': PERMISSIONS.MANAGE_EMAIL,
+  '/api/emails': PERMISSIONS.VIEW_EMAIL,
+  '/api/emails/generate': PERMISSIONS.MANAGE_EMAIL,
   '/api/webhook': PERMISSIONS.MANAGE_WEBHOOK,
   '/api/roles/promote': PERMISSIONS.PROMOTE_USER,
   '/api/config': PERMISSIONS.MANAGE_CONFIG,
   '/api/api-keys': PERMISSIONS.MANAGE_API_KEY,
+  '/api/admin/users': PERMISSIONS.MANAGE_USERS,
 }
 
 export async function middleware(request: Request) {
@@ -29,6 +32,15 @@ export async function middleware(request: Request) {
     return NextResponse.json(
       { error: "未授权" },
       { status: 401 }
+    )
+  }
+
+  // 检查用户状态和有效期
+  const userStatus = await checkUserStatus(session.user.id)
+  if (!userStatus.isValid) {
+    return NextResponse.json(
+      { error: userStatus.reason || "账户状态异常" },
+      { status: 403 }
     )
   }
 
@@ -60,5 +72,6 @@ export const config = {
     '/api/roles/:path*',
     '/api/config/:path*',
     '/api/api-keys/:path*',
+    '/api/admin/:path*',
   ]
-} 
+}

@@ -33,7 +33,7 @@ const getDefaultRole = async (): Promise<Role> => {
   return ROLES.CIVILIAN
 }
 
-async function findOrCreateRole(db: Db, roleName: Role) {
+export async function findOrCreateRole(db: Db, roleName: Role) {
   let role = await db.query.roles.findFirst({
     where: eq(roles.name, roleName),
   })
@@ -72,18 +72,41 @@ export async function getUserRole(userId: string) {
 }
 
 export async function checkPermission(permission: Permission) {
-  const userId = await getUserId()
+  try {
+    const userId = await getUserId()
 
-  if (!userId) return false
+    if (!userId) return false
 
-  const db = createDb()
-  const userRoleRecords = await db.query.userRoles.findMany({
-    where: eq(userRoles.userId, userId),
-    with: { role: true },
-  })
+    // 添加重试机制
+    let retries = 3
+    while (retries > 0) {
+      try {
+        const db = createDb()
+        const userRoleRecords = await db.query.userRoles.findMany({
+          where: eq(userRoles.userId, userId),
+          with: { role: true },
+        })
 
-  const userRoleNames = userRoleRecords.map(ur => ur.role.name)
-  return hasPermission(userRoleNames as Role[], permission)
+        const userRoleNames = userRoleRecords.map(ur => ur.role.name)
+        return hasPermission(userRoleNames as Role[], permission)
+      } catch (dbError) {
+        retries--
+        console.error(`Database query failed, retries left: ${retries}`, dbError)
+
+        if (retries === 0) {
+          throw dbError
+        }
+
+        // 等待一小段时间后重试
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+
+    return false
+  } catch (error) {
+    console.error('Permission check failed:', error)
+    return false
+  }
 }
 
 export const {
